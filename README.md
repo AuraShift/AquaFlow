@@ -2,6 +2,8 @@
 
 A beautiful, interactive, single-file hydration tracker that reminds you to drink water every hour. Built as a Progressive Web App (PWA) that runs in any modern browser and installs to your Android/iOS home screen like a native app.
 
+Link - https://aurashift.github.io/AquaFlow/
+
 > Stay hydrated, one hour at a time.
 
 ---
