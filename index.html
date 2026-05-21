@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#0c4a6e"/>
+<title>AquaFlow</title>
+<link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkFxdWFGbG93IiwKICAic2hvcnRfbmFtZSI6ICJBcXVhRmxvdyIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMGM0YTZlIiwKICAidGhlbWVfY29sb3IiOiAiIzBjNGE2ZSIKfQ==" />
+<style>
+  :root {
+    --bg-1: #0a1929;
+    --bg-2: #0c4a6e;
+    --accent: #38bdf8;
+    --accent-2: #0ea5e9;
+    --accent-3: #7dd3fc;
+    --gold: #fbbf24;
+    --rose: #fb7185;
+    --text: #f0f9ff;
+    --text-dim: #94a3b8;
+    --glass: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.15);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    background: radial-gradient(ellipse at top, #0c4a6e 0%, #0a1929 70%);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    user-select: none;
+  }
+  body {
+    padding: 16px 14px 100px;
+    max-width: 500px;
+    margin: 0 auto;
+    position: relative;
+  }
+  
+  /* Animated background bubbles */
+  .bg-bubbles {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .bubble {
+    position: absolute;
+    bottom: -100px;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), rgba(56,189,248,0.1));
+    border-radius: 50%;
+    animation: rise linear infinite;
+    opacity: 0.5;
+  }
+  @keyframes rise {
+    0% { transform: translateY(0) translateX(0); opacity: 0; }
+    10% { opacity: 0.6; }
+    90% { opacity: 0.6; }
+    100% { transform: translateY(-120vh) translateX(20px); opacity: 0; }
+  }
+  
+  .app { position: relative; z-index: 1; }
+  
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 4px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 4px 20px rgba(56,189,248,0.4);
+  }
+  .brand-text h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+  .brand-text p { font-size: 11px; color: var(--text-dim); }
+  .date-pill {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    padding: 8px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    backdrop-filter: blur(10px);
+  }
+  
+  /* Hero ring */
+  .hero {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 24px;
+    padding: 20px 0;
+  }
+  .ring-container {
+    position: relative;
+    width: 240px;
+    height: 240px;
+  }
+  .ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 14; }
+  .ring-fg {
+    fill: none;
+    stroke: url(#ringGradient);
+    stroke-width: 14;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 0 8px rgba(56,189,248,0.5));
+  }
+  .ring-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  .glasses-count {
+    font-size: 56px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent-3), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .glasses-count.pop { transform: scale(1.2); }
+  .glasses-label { font-size: 12px; color: var(--text-dim); margin-top: 4px; letter-spacing: 1px; text-transform: uppercase; }
+  .glasses-total { font-size: 14px; color: var(--text-dim); margin-top: 8px; }
+  
+  /* Floating water in ring */
+  .water-fill {
+    position: absolute;
+    bottom: 14px; left: 14px; right: 14px;
+    height: 0%;
+    background: linear-gradient(180deg, rgba(56,189,248,0.3), rgba(2,132,199,0.5));
+    border-radius: 50%;
+    overflow: hidden;
+    transition: height 1s cubic-bezier(0.4, 0, 0.2, 1);
+    clip-path: circle(50% at center);
+  }
+  .water-fill::before {
+    content: '';
+    position: absolute;
+    top: -10px; left: -50%;
+    width: 200%; height: 20px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    animation: wave 3s ease-in-out infinite;
+  }
+  @keyframes wave {
+    0%, 100% { transform: translateX(0) scaleY(1); }
+    50% { transform: translateX(25%) scaleY(0.6); }
+  }
+  
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    padding: 14px 10px;
+    text-align: center;
+    transition: transform 0.2s;
+  }
+  .stat-card:active { transform: scale(0.97); }
+  .stat-icon { font-size: 18px; margin-bottom: 4px; }
+  .stat-value { font-size: 20px; font-weight: 700; }
+  .stat-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+  
+  /* Reminder banner */
+  .reminder-banner {
+    background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(245,158,11,0.1));
+    border: 1px solid rgba(251,191,36,0.3);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: glow 2s ease-in-out infinite;
+  }
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(251,191,36,0.4); }
+    50% { box-shadow: 0 0 20px 4px rgba(251,191,36,0.2); }
+  }
+  .reminder-banner.hidden { display: none; }
+  .reminder-icon { font-size: 24px; animation: shake 1s ease-in-out infinite; }
+  @keyframes shake {
+    0%, 100% { transform: rotate(0); }
+    25% { transform: rotate(-10deg); }
+    75% { transform: rotate(10deg); }
+  }
+  .reminder-text { flex: 1; }
+  .reminder-text strong { display: block; font-size: 14px; margin-bottom: 2px; }
+  .reminder-text span { font-size: 12px; color: var(--text-dim); }
+  
+  /* Hours grid */
+  .section-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    padding-left: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .section-title span:last-child { font-size: 11px; color: var(--accent-3); }
+  
+  .hours-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .hour-cell {
+    aspect-ratio: 1;
+    border-radius: 14px;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+  }
+  .hour-cell::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 0; height: 0;
+    background: radial-gradient(circle, rgba(56,189,248,0.4), transparent);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+  }
+  .hour-cell:active::before { width: 200%; height: 200%; }
+  .hour-cell:active { transform: scale(0.92); }
+  
+  .hour-cell.done {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-color: var(--accent);
+    box-shadow: 0 4px 16px rgba(56,189,248,0.3);
+  }
+  .hour-cell.done .hour-icon { animation: splash 0.5s ease-out; }
+  @keyframes splash {
+    0% { transform: scale(0) rotate(0); }
+    50% { transform: scale(1.3) rotate(180deg); }
+    100% { transform: scale(1) rotate(360deg); }
+  }
+  .hour-cell.current {
+    border: 2px solid var(--gold);
+    box-shadow: 0 0 0 4px rgba(251,191,36,0.15);
+    animation: currentPulse 2s ease-in-out infinite;
+  }
+  @keyframes currentPulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(251,191,36,0.15); }
+    50% { box-shadow: 0 0 0 8px rgba(251,191,36,0.25); }
+  }
+  .hour-cell.missed {
+    background: rgba(251,113,133,0.15);
+    border-color: rgba(251,113,133,0.3);
+    opacity: 0.7;
+  }
+  .hour-cell.future { opacity: 0.5; }
+  .hour-label { font-weight: 600; font-size: 13px; }
+  .hour-icon { font-size: 18px; margin-top: 4px; }
+  .hour-cell.done .hour-label, .hour-cell.done .hour-icon { color: white; }
+  
+  /* Action bar */
+  .action-bar {
+    position: fixed;
+    bottom: 16px; left: 14px; right: 14px;
+    max-width: 472px;
+    margin: 0 auto;
+    background: rgba(10, 25, 41, 0.85);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 10px;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  }
+  .action-btn {
+    flex: 1;
+    border: none;
+    padding: 14px;
+    border-radius: 16px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: white;
+    font-family: inherit;
+  }
+  .action-btn.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    box-shadow: 0 4px 16px rgba(56,189,248,0.4);
+    flex: 2;
+  }
+  .action-btn.primary:active { transform: scale(0.95); box-shadow: 0 2px 8px rgba(56,189,248,0.3); }
+  .action-btn.secondary { background: var(--glass); border: 1px solid var(--glass-border); }
+  .action-btn.secondary:active { transform: scale(0.95); }
+  
+  /* Settings drawer */
+  .settings-drawer {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+  .setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 13px;
+  }
+  .setting-row + .setting-row { border-top: 1px solid var(--glass-border); margin-top: 6px; padding-top: 12px; }
+  .toggle {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 100px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle.on { background: var(--accent-2); }
+  .toggle-knob {
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 20px; height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .toggle.on .toggle-knob { transform: translateX(20px); }
+  
+  /* Toast */
+  .toast {
+    position: fixed;
+    top: 20px; left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background: rgba(10, 25, 41, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 100px;
+    font-size: 14px;
+    z-index: 100;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  
+  /* Confetti */
+  .confetti {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 50;
+    overflow: hidden;
+  }
+  .confetti-piece {
+    position: absolute;
+    width: 8px; height: 12px;
+    top: -20px;
+    animation: fall 3s linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(720deg); }
+  }
+  
+  /* Install hint */
+  .install-hint {
+    background: linear-gradient(135deg, rgba(56,189,248,0.15), rgba(14,165,233,0.1));
+    border: 1px solid rgba(56,189,248,0.3);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    color: var(--accent-3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .install-hint.hidden { display: none; }
+  .install-hint button {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 16px;
+  }
+</style>
+</head>
+<body>
+<div class="bg-bubbles" id="bgBubbles"></div>
+
+<div class="app">
+  <div class="header">
+    <div class="brand">
+      <div class="brand-icon">💧</div>
+      <div class="brand-text">
+        <h1>AquaFlow</h1>
+        <p>Hourly hydration</p>
+      </div>
+    </div>
+    <div class="date-pill" id="datePill">Today</div>
+  </div>
+
+  <div class="install-hint" id="installHint">
+    <span>📱</span>
+    <span>Tap menu → "Add to Home screen" for app-like access</span>
+    <button onclick="dismissHint()">✕</button>
+  </div>
+
+  <div class="hero">
+    <div class="ring-container">
+      <svg class="ring-svg" viewBox="0 0 240 240">
+        <defs>
+          <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#7dd3fc"/>
+            <stop offset="100%" stop-color="#0284c7"/>
+          </linearGradient>
+        </defs>
+        <circle class="ring-bg" cx="120" cy="120" r="105"/>
+        <circle class="ring-fg" id="ringFg" cx="120" cy="120" r="105"
+                stroke-dasharray="659.7" stroke-dashoffset="659.7"/>
+      </svg>
+      <div class="ring-center">
+        <div class="glasses-count" id="glassesCount">0</div>
+        <div class="glasses-label">Glasses</div>
+        <div class="glasses-total" id="glassesTotal">of 16 today</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="reminder-banner hidden" id="reminderBanner">
+    <div class="reminder-icon">⏰</div>
+    <div class="reminder-text">
+      <strong>Time to hydrate!</strong>
+      <span id="reminderTime">It's the top of the hour</span>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon">🔥</div>
+      <div class="stat-value" id="streakValue">0</div>
+      <div class="stat-label">Day Streak</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">💧</div>
+      <div class="stat-value" id="mlValue">0</div>
+      <div class="stat-label">ml Today</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⏱️</div>
+      <div class="stat-value" id="nextValue">--</div>
+      <div class="stat-label">Next In</div>
+    </div>
+  </div>
+
+  <div class="section-title">
+    <span>Hourly log</span>
+    <span id="completionPct">0% complete</span>
+  </div>
+  <div class="hours-grid" id="hoursGrid"></div>
+
+  <div class="settings-drawer">
+    <div class="setting-row">
+      <div>
+        <div style="font-weight:600;">Hourly notifications</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Browser alerts at the top of each hour</div>
+      </div>
+      <div class="toggle" id="notifyToggle" onclick="toggleNotifications()">
+        <div class="toggle-knob"></div>
+      </div>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div style="font-weight:600;">Sound on log</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Plays a chime when you log a glass</div>
+      </div>
+      <div class="toggle on" id="soundToggle" onclick="toggleSound()">
+        <div class="toggle-knob"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="action-bar">
+  <button class="action-btn secondary" onclick="undoLast()">↶ Undo</button>
+  <button class="action-btn primary" onclick="logCurrentHour()">💧 Drink Now</button>
+  <button class="action-btn secondary" onclick="resetDay()">↺ Reset</button>
+</div>
+
+<div class="toast" id="toast">✓ Logged!</div>
+<div class="confetti" id="confetti"></div>
+
+<script>
+  const WAKE_START = 7;
+  const WAKE_END = 22;  // 10 PM last tracked hour
+  const ML_PER_GLASS = 250;
+  const TOTAL_HOURS = WAKE_END - WAKE_START + 1;
+  const RING_CIRCUMFERENCE = 2 * Math.PI * 105;
+
+  let state = loadState();
+  let history = [];
+  let notifyTimeout = null;
+  let notifyInterval = null;
+  let soundEnabled = true;
+
+  // ---- State ----
+  function loadState() {
+    const today = new Date().toDateString();
+    try {
+      const saved = JSON.parse(localStorage.getItem('aquaflow') || '{}');
+      if (saved.date === today) return saved;
+      // New day: compute streak
+      const yesterdayComplete = saved.hours && Object.values(saved.hours).filter(Boolean).length >= TOTAL_HOURS * 0.7;
+      return { date: today, hours: {}, streak: yesterdayComplete ? (saved.streak || 0) + 1 : 0, notify: saved.notify || false };
+    } catch(e) {
+      return { date: today, hours: {}, streak: 0, notify: false };
+    }
+  }
+  function saveState() {
+    try { localStorage.setItem('aquaflow', JSON.stringify(state)); } catch(e) {}
+  }
+
+  // ---- Rendering ----
+  function render() {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const grid = document.getElementById('hoursGrid');
+    grid.innerHTML = '';
+    let completed = 0;
+
+    for (let h = WAKE_START; h <= WAKE_END; h++) {
+      const cell = document.createElement('div');
+      cell.className = 'hour-cell';
+      const done = state.hours[h];
+      const isPast = h < currentHour;
+      const isCurrent = h === currentHour;
+      const isFuture = h > currentHour;
+
+      if (done) { cell.classList.add('done'); completed++; }
+      else if (isPast) cell.classList.add('missed');
+      else if (isFuture) cell.classList.add('future');
+      if (isCurrent) cell.classList.add('current');
+
+      const label = h === 12 ? '12pm' : h > 12 ? (h-12)+'pm' : h+'am';
+      const icon = done ? '✓' : isCurrent ? '👆' : isFuture ? '○' : '✗';
+      cell.innerHTML = `<div class="hour-label">${label}</div><div class="hour-icon">${icon}</div>`;
+      cell.onclick = () => toggleHour(h, cell);
+      grid.appendChild(cell);
+    }
+
+    // Hero ring
+    const pct = completed / TOTAL_HOURS;
+    document.getElementById('ringFg').style.strokeDashoffset = RING_CIRCUMFERENCE * (1 - pct);
+    document.getElementById('glassesCount').textContent = completed;
+    document.getElementById('glassesTotal').textContent = `of ${TOTAL_HOURS} today`;
+    document.getElementById('completionPct').textContent = `${Math.round(pct * 100)}% complete`;
+
+    // Stats
+    document.getElementById('streakValue').textContent = state.streak;
+    document.getElementById('mlValue').textContent = completed * ML_PER_GLASS;
+    const minsToNext = 60 - now.getMinutes();
+    document.getElementById('nextValue').textContent = minsToNext + 'm';
+
+    // Date pill
+    document.getElementById('datePill').textContent = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+
+    // Reminder banner
+    const banner = document.getElementById('reminderBanner');
+    if (currentHour >= WAKE_START && currentHour <= WAKE_END && !state.hours[currentHour]) {
+      banner.classList.remove('hidden');
+      document.getElementById('reminderTime').textContent = `${minsToNext} min into this hour — log when done`;
+    } else {
+      banner.classList.add('hidden');
+    }
+  }
+
+  function toggleHour(h, cell) {
+    history.push({ hour: h, prev: !!state.hours[h] });
+    if (history.length > 20) history.shift();
+    state.hours[h] = !state.hours[h];
+    saveState();
+    if (state.hours[h]) {
+      ripple(cell);
+      playChime();
+      vibrate(30);
+      popCount();
+    }
+    render();
+    checkCompletion();
+  }
+
+  function logCurrentHour() {
+    const h = new Date().getHours();
+    if (state.hours[h]) {
+      toast('Already logged this hour 💧');
+      return;
+    }
+    history.push({ hour: h, prev: false });
+    state.hours[h] = true;
+    saveState();
+    render();
+    toast('Glass logged! Great work 💪');
+    playChime();
+    vibrate([30, 50, 30]);
+    popCount();
+    checkCompletion();
+  }
+
+  function undoLast() {
+    if (!history.length) { toast('Nothing to undo'); return; }
+    const last = history.pop();
+    state.hours[last.hour] = last.prev;
+    saveState();
+    render();
+    toast('Undone');
+    vibrate(20);
+  }
+
+  function resetDay() {
+    if (!confirm('Reset all logs for today?')) return;
+    state.hours = {};
+    history = [];
+    saveState();
+    render();
+    toast('Day reset');
+  }
+
+  function popCount() {
+    const el = document.getElementById('glassesCount');
+    el.classList.add('pop');
+    setTimeout(() => el.classList.remove('pop'), 300);
+  }
+
+  function ripple(el) {
+    if (!el) return;
+    el.style.animation = 'none';
+    el.offsetHeight; // trigger reflow
+    el.style.animation = '';
+  }
+
+  function checkCompletion() {
+    const completed = Object.values(state.hours).filter(Boolean).length;
+    if (completed === TOTAL_HOURS && !state.celebrated) {
+      state.celebrated = true;
+      saveState();
+      confetti();
+      toast('🎉 Goal smashed! Hydration legend!');
+    }
+  }
+
+  // ---- Toast ----
+  let toastTimeout;
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // ---- Sound & Vibration ----
+  function playChime() {
+    if (!soundEnabled) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.setValueAtTime(880, ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.15);
+      g.gain.setValueAtTime(0.15, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      o.start(); o.stop(ctx.currentTime + 0.4);
+    } catch(e) {}
+  }
+  function vibrate(pattern) {
+    if (navigator.vibrate) navigator.vibrate(pattern);
+  }
+
+  // ---- Confetti ----
+  function confetti() {
+    const container = document.getElementById('confetti');
+    const colors = ['#38bdf8', '#fbbf24', '#7dd3fc', '#fb7185', '#a78bfa'];
+    for (let i = 0; i < 60; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.left = Math.random() * 100 + '%';
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.animationDelay = Math.random() * 0.5 + 's';
+      piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+      piece.style.transform = `rotate(${Math.random()*360}deg)`;
+      container.appendChild(piece);
+      setTimeout(() => piece.remove(), 4000);
+    }
+  }
+
+  // ---- Background bubbles ----
+  function spawnBubbles() {
+    const container = document.getElementById('bgBubbles');
+    for (let i = 0; i < 8; i++) {
+      const b = document.createElement('div');
+      b.className = 'bubble';
+      const size = 20 + Math.random() * 60;
+      b.style.width = size + 'px';
+      b.style.height = size + 'px';
+      b.style.left = Math.random() * 100 + '%';
+      b.style.animationDuration = (12 + Math.random() * 10) + 's';
+      b.style.animationDelay = Math.random() * 8 + 's';
+      container.appendChild(b);
+    }
+  }
+
+  // ---- Notifications ----
+  function toggleNotifications() {
+    const toggle = document.getElementById('notifyToggle');
+    if (toggle.classList.contains('on')) {
+      toggle.classList.remove('on');
+      state.notify = false;
+      saveState();
+      if (notifyTimeout) clearTimeout(notifyTimeout);
+      if (notifyInterval) clearInterval(notifyInterval);
+      toast('Notifications off');
+    } else {
+      if (!('Notification' in window)) { toast('Notifications not supported'); return; }
+      Notification.requestPermission().then(perm => {
+        if (perm === 'granted') {
+          toggle.classList.add('on');
+          state.notify = true;
+          saveState();
+          scheduleReminders();
+          toast('Notifications on 🔔');
+        } else {
+          toast('Permission denied');
+        }
+      });
+    }
+  }
+  function scheduleReminders() {
+    const now = new Date();
+    const msToNextHour = ((60 - now.getMinutes()) * 60 - now.getSeconds()) * 1000;
+    notifyTimeout = setTimeout(() => {
+      fireReminder();
+      notifyInterval = setInterval(fireReminder, 3600000);
+    }, msToNextHour);
+  }
+  function fireReminder() {
+    const h = new Date().getHours();
+    if (h < WAKE_START || h > WAKE_END) return;
+    if (state.hours[h]) return;
+    try {
+      new Notification('💧 Hydration time!', {
+        body: "Top of the hour — drink a glass of water.",
+        icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💧</text></svg>',
+        tag: 'aquaflow-hourly'
+      });
+    } catch(e) {}
+  }
+  function toggleSound() {
+    const t = document.getElementById('soundToggle');
+    t.classList.toggle('on');
+    soundEnabled = t.classList.contains('on');
+    if (soundEnabled) playChime();
+  }
+
+  function dismissHint() {
+    document.getElementById('installHint').classList.add('hidden');
+    localStorage.setItem('aquaflowHintDismissed', '1');
+  }
+  if (localStorage.getItem('aquaflowHintDismissed')) {
+    document.getElementById('installHint').classList.add('hidden');
+  }
+
+  // ---- Init ----
+  spawnBubbles();
+  if (state.notify) {
+    document.getElementById('notifyToggle').classList.add('on');
+    scheduleReminders();
+  }
+  render();
+  setInterval(render, 30000); // refresh every 30s for current hour & "next in"
+</script>
+</body>
+</html>
